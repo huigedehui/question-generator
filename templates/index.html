@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 题库生成器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 15px;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 {
+            color: #fff;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            padding: 15px;
+            margin-bottom: 12px;
+        }
+        h2 {
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+        }
+        .form-group { margin-bottom: 10px; }
+        label { display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600; color: #555; }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #e1e1e1;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        input:focus, select:focus { outline: none; border-color: #667eea; }
+        .file-upload {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .file-upload:hover { background: #f8f9ff; }
+        .file-upload input { display: none; }
+        .file-list { margin-top: 8px; }
+        .file-item {
+            background: #f8f9ff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+        .remove-file {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .btn {
+            padding: 12px 30px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4); }
+        .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-test {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            color: white;
+            width: auto;
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+        .btn-test:hover { background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); }
+        .btn-test:disabled { background: #95a5a6; }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            width: auto;
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+        .btn-danger:hover { background: #c82333; }
+        .btn-save {
+            background: #28a745;
+            color: white;
+            width: auto;
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+        .btn-save:hover { background: #218838; }
+        .progress-container { display: none; margin-top: 10px; }
+        .progress-bar { height: 16px; background: #e1e1e1; border-radius: 8px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); width: 0%; transition: width 0.3s; }
+        .progress-text { text-align: center; margin-top: 5px; font-size: 12px; color: #666; }
+        .log-container {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 12px;
+            border-radius: 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+            display: none;
+            margin-top: 10px;
+        }
+        .log-line { margin-bottom: 3px; }
+        .result-section { display: none; margin-top: 10px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px; }
+        .stat-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value { font-size: 1.5em; font-weight: bold; }
+        .stat-label { font-size: 11px; opacity: 0.9; }
+        .settings-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .config-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .api-test-result {
+            margin-top: 8px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            display: none;
+        }
+        .api-test-result.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .api-test-result.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .api-test-result.loading { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .download-btn { text-align: center; margin-top: 10px; }
+        .download-btn a {
+            background: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 13px;
+        }
+        @media (max-width: 600px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .config-section { grid-template-columns: 1fr; }
+            .settings-row { grid-template-columns: 1fr; }
+            .two-col { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI 题库生成器</h1>
+
+        <!-- API Configuration -->
+        <div class="card">
+            <h2>API 配置</h2>
+            <div class="two-col">
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="text" id="apiKey" placeholder="输入 API Key">
+                </div>
+                <div class="form-group">
+                    <label>API Base URL</label>
+                    <input type="text" id="apiBase" placeholder="API Base URL" style="flex: 1;">
+                    <select id="apiBasePreset" onchange="handleApiBasePreset()" style="width: 140px;">
+                        <option value="https://open.bigmodel.cn/api/paas/v4">智谱AI</option>
+                        <option value="https://api.deepseek.com/v1">DeepSeek</option>
+                        <option value="https://api.openai.com/v1">OpenAI</option>
+                        <option value="">自定义</option>
+                    </select>
+                </div>
+            </div>
+            <div class="two-col">
+                <div class="form-group">
+                    <label>模型</label>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="modelPreset" onchange="handleModelPresetChange()" style="flex: 1;">
+                            <option value="">自定义</option>
+                            <optgroup label="🔥 免费模型">
+                                <option value="glm-4-flash-250414">GLM-4-Flash (免费·128K上下文)</option>
+                                <option value="glm-4.7-flash">GLM-4.7-Flash (免费·代码强)</option>
+                                <option value="glm-z1-flash">GLM-Z1-Flash (免费·推理)</option>
+                            </optgroup>
+                            <optgroup label="💰 付费模型">
+                                <option value="glm-5-turbo">GLM-5-Turbo</option>
+                                <option value="glm-4-plus">GLM-4-Plus</option>
+                                <option value="gpt-4o-mini">GPT-4o-mini</option>
+                                <option value="deepseek-chat">DeepSeek-V3</option>
+                                <option value="qwen-turbo">通义千问-Turbo</option>
+                            </optgroup>
+                        </select>
+                        <input type="text" id="model" placeholder="或直接输入" style="flex: 1;">
+                    </div>
+                </div>
+                <div class="form-group" style="display: flex; align-items: flex-end; gap: 8px;">
+                    <button class="btn btn-test" id="testBtn" onclick="testAPI()">🔧 测试连接</button>
+                </div>
+            </div>
+            <div class="api-test-result" id="apiTestResult"></div>
+        </div>
+
+        <!-- Document Upload -->
+        <div class="card">
+            <h2>上传文档</h2>
+            <div class="file-upload" id="dropZone">
+                <div style="font-size: 24px;">📁</div>
+                <div style="font-size: 13px;">点击或拖拽文件上传 (.docx, .txt)</div>
+                <input type="file" id="fileInput" accept=".docx,.txt" multiple>
+            </div>
+            <div class="file-list" id="fileList"></div>
+        </div>
+
+        <!-- Settings -->
+        <div class="card">
+            <h2>生成设置</h2>
+            <div class="config-section">
+                <div>
+                    <div class="two-col">
+                        <div class="form-group">
+                            <label>单选题</label>
+                            <input type="number" id="singleCount" value="150" min="0" max="500">
+                        </div>
+                        <div class="form-group">
+                            <label>多选题</label>
+                            <input type="number" id="multiCount" value="90" min="0" max="500">
+                        </div>
+                    </div>
+                    <div class="two-col">
+                        <div class="form-group">
+                            <label>判断题</label>
+                            <input type="number" id="tfCount" value="90" min="0" max="500">
+                        </div>
+                        <div class="form-group">
+                            <label>问答题</label>
+                            <input type="number" id="essayCount" value="20" min="0" max="200">
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label>切片大小 (字符)</label>
+                        <input type="number" id="chunkSize" value="800" min="200" max="2000">
+                    </div>
+                    <div class="form-group">
+                        <label>输出文件</label>
+                        <input type="text" id="outputPath" value="生成试卷.xlsx">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Settings -->
+        <div class="card">
+            <h2>输出设置</h2>
+            <div class="settings-row">
+                <div class="form-group">
+                    <label>试题分类</label>
+                    <select id="category">
+                        <option value="考试">考试</option>
+                        <option value="练习">练习</option>
+                        <option value="考试和练习">考试和练习</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>难易度</label>
+                    <select id="difficulty">
+                        <option value="容易">容易</option>
+                        <option value="较易">较易</option>
+                        <option value="一般" selected>一般</option>
+                        <option value="较难">较难</option>
+                        <option value="非常难">非常难</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>重试次数</label>
+                    <input type="number" id="maxRetries" value="3" min="1" max="10">
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="card">
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <button class="btn btn-primary" id="runBtn" onclick="runGenerator()">▶ 开始生成</button>
+            <button class="btn btn-danger" id="stopBtn" onclick="stopGeneration()" style="display: none;">⏹ 暂停并保存</button>
+            <button class="btn btn-save" id="saveBtn" onclick="saveCurrent()" style="display: none;">💾 保存当前</button>
+        </div>
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                <div class="progress-text" id="progressText">准备中...</div>
+            </div>
+            <div class="log-container" id="logContainer"></div>
+        </div>
+
+        <!-- Results -->
+        <div class="card result-section" id="resultSection">
+            <h2>生成结果</h2>
+            <div class="stats-grid" id="statsGrid"></div>
+            <div class="download-btn"><a id="downloadLink" href="#">📥 下载 Excel</a></div>
+        </div>
+    </div>
+
+    <script>
+        let uploadedFiles = [];
+
+        // File upload
+        document.getElementById('dropZone').addEventListener('click', () => document.getElementById('fileInput').click());
+        document.getElementById('dropZone').addEventListener('dragover', e => { e.preventDefault(); e.target.style.background = '#f0f4ff'; });
+        document.getElementById('dropZone').addEventListener('dragleave', e => e.target.style.background = '');
+        document.getElementById('dropZone').addEventListener('drop', e => { e.preventDefault(); e.target.style.background = ''; handleFiles(e.dataTransfer.files); });
+        document.getElementById('fileInput').addEventListener('change', e => handleFiles(e.target.files));
+
+        function handleFiles(files) {
+            for (const f of files) {
+                if (f.name.endsWith('.docx') || f.name.endsWith('.txt')) {
+                    if (!uploadedFiles.some(x => x.name === f.name)) uploadedFiles.push(f);
+                }
+            }
+            updateFileList();
+        }
+
+        function updateFileList() {
+            document.getElementById('fileList').innerHTML = uploadedFiles.map((f, i) =>
+                `<div class="file-item"><span>📄 ${f.name}</span><button class="remove-file" onclick="removeFile(${i})">删除</button></div>`
+            ).join('');
+        }
+
+        function removeFile(i) { uploadedFiles.splice(i, 1); updateFileList(); }
+        function handleModelPresetChange() {
+            const v = document.getElementById('modelPreset').value;
+            if (v) document.getElementById('model').value = v;
+            saveConfig();
+        }
+
+        function handleApiBasePreset() {
+            const base = document.getElementById('apiBasePreset').value;
+            if (base) {
+                document.getElementById('apiBase').value = base;
+                if (base.includes('bigmodel')) {
+                    document.getElementById('modelPreset').value = 'glm-4-flash';
+                    document.getElementById('model').value = 'glm-4-flash';
+                }
+            }
+            saveConfig();
+        }
+
+        // Persist API config
+        async function saveConfig() {
+            const data = {
+                apiKey: document.getElementById('apiKey').value.trim(),
+                apiBase: document.getElementById('apiBase').value.trim(),
+                model: document.getElementById('model').value.trim() || document.getElementById('modelPreset').value,
+            };
+            await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        }
+
+        async function loadConfig() {
+            const r = await fetch('/api/config');
+            const d = await r.json();
+            if (d.success && d.config.apiKey) {
+                document.getElementById('apiKey').value = d.config.apiKey || '';
+                document.getElementById('apiBase').value = d.config.apiBase || '';
+                document.getElementById('model').value = d.config.model || '';
+            }
+        }
+        loadConfig();
+
+        // Auto-save on input change
+        document.addEventListener('DOMContentLoaded', () => {
+            ['apiKey', 'apiBase', 'model'].forEach(id => {
+                document.getElementById(id).addEventListener('change', saveConfig);
+            });
+        });
+
+        // Test API
+        async function testAPI() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const apiBase = document.getElementById('apiBase').value.trim();
+            const model = document.getElementById('model').value.trim() || document.getElementById('modelPreset').value;
+            if (!apiKey || !model) { showTestResult('error', '请填写 API Key 和模型'); return; }
+            saveConfig();
+
+            const btn = document.getElementById('testBtn');
+            btn.disabled = true; btn.textContent = '⏳ 测试中...';
+            showTestResult('loading', '正在测试...');
+
+            try {
+                const r = await fetch('/api/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, apiBase, model })
+                });
+                const d = await r.json();
+                if (d.success) showTestResult('success', `✓ 成功 | 延迟: ${d.latency}ms | 模型: ${d.model}`);
+                else showTestResult('error', `✗ 失败: ${d.error}`);
+            } catch (e) { showTestResult('error', `✗ 网络错误: ${e.message}`); }
+
+            btn.disabled = false; btn.textContent = '🔧 测试连接';
+        }
+
+        function showTestResult(type, msg) {
+            const el = document.getElementById('apiTestResult');
+            el.className = 'api-test-result ' + type;
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        // Run generator
+        async function runGenerator() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) { alert('请输入 API Key'); return; }
+            if (uploadedFiles.length === 0) { alert('请上传文档'); return; }
+
+            const btn = document.getElementById('runBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            btn.disabled = true; btn.textContent = '⚙️ 生成中...';
+            stopBtn.style.display = 'inline-block';
+            saveBtn.style.display = 'inline-block';
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('logContainer').style.display = 'block';
+            document.getElementById('resultSection').style.display = 'none';
+
+            const formData = new FormData();
+            uploadedFiles.forEach(f => formData.append('documents', f));
+            formData.append('apiKey', apiKey);
+            formData.append('apiBase', document.getElementById('apiBase').value);
+            formData.append('model', document.getElementById('model').value.trim() || document.getElementById('modelPreset').value);
+            formData.append('singleCount', document.getElementById('singleCount').value);
+            formData.append('multiCount', document.getElementById('multiCount').value);
+            formData.append('tfCount', document.getElementById('tfCount').value);
+            formData.append('essayCount', document.getElementById('essayCount').value);
+            formData.append('chunkSize', document.getElementById('chunkSize').value);
+            formData.append('outputPath', document.getElementById('outputPath').value);
+            formData.append('category', document.getElementById('category').value);
+            formData.append('difficulty', document.getElementById('difficulty').value);
+            formData.append('maxRetries', document.getElementById('maxRetries').value);
+
+            try {
+                const response = await fetch('/api/generate', { method: 'POST', body: formData });
+                if (!response.ok) {
+                    const err = await response.json();
+                    log('❌ 服务器错误: ' + (err.error || response.statusText));
+                    btn.disabled = false; btn.textContent = '▶ 开始生成题目';
+                    return;
+                }
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let resultData = {};
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const text = decoder.decode(value);
+                    for (const line of text.split('\n')) {
+                        if (line.startsWith('data: ')) {
+                            const data = JSON.parse(line.slice(6));
+                            if (data.type === 'progress') {
+                                document.getElementById('progressFill').style.width = data.percent + '%';
+                                document.getElementById('progressText').textContent = data.message;
+                            } else if (data.type === 'log') {
+                                log(data.message);
+                            } else if (data.type === 'result') {
+                                resultData = data;
+                            }
+                        }
+                    }
+                }
+                showResults(resultData);
+            } catch (e) { log('❌ 错误: ' + e.message); }
+
+            btn.disabled = false; btn.textContent = '▶ 开始生成';
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('saveBtn').style.display = 'none';
+        }
+
+        function stopGeneration() {
+            fetch('/api/stop', { method: 'POST' })
+                .then(r => r.json())
+                .then(d => log('⏹ ' + d.message))
+                .catch(e => log('❌ 停止失败: ' + e.message));
+        }
+
+        function saveCurrent() {
+            const outputPath = document.getElementById('outputPath').value;
+            fetch('/api/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ outputPath })
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    log('💾 已保存 ' + d.count + ' 道题目到 ' + (d.filePath || '未知路径'));
+                    if (d.filePath) {
+                        document.getElementById('downloadLink').href = '/api/download/' + encodeURIComponent(d.filePath);
+                        document.getElementById('downloadLink').style.display = 'inline-block';
+                    } else {
+                        document.getElementById('downloadLink').style.display = 'none';
+                    }
+                    document.getElementById('resultSection').style.display = 'block';
+                } else {
+                    log('❌ 保存失败: ' + d.error);
+                }
+            })
+            .catch(e => log('❌ 保存失败: ' + e.message));
+        }
+
+        function log(msg) {
+            const c = document.getElementById('logContainer');
+            c.innerHTML += `<div class="log-line">${new Date().toLocaleTimeString()} ${msg}</div>`;
+            c.scrollTop = c.scrollHeight;
+        }
+
+        function showResults(r) {
+            document.getElementById('statsGrid').innerHTML = `
+                <div class="stat-item"><div class="stat-value">${r.totalQuestions || 0}</div><div class="stat-label">总题目</div></div>
+                <div class="stat-item"><div class="stat-value">${r.singleCount || 0}</div><div class="stat-label">单选题</div></div>
+                <div class="stat-item"><div class="stat-value">${r.multiCount || 0}</div><div class="stat-label">多选题</div></div>
+                <div class="stat-item"><div class="stat-value">${r.otherCount || 0}</div><div class="stat-label">其他</div></div>
+            `;
+            if (r.filePath) {
+                document.getElementById('downloadLink').href = '/api/download/' + encodeURIComponent(r.filePath);
+                document.getElementById('downloadLink').style.display = 'inline-block';
+            } else {
+                document.getElementById('downloadLink').style.display = 'none';
+            }
+            document.getElementById('resultSection').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
